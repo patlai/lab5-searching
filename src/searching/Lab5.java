@@ -14,6 +14,8 @@ public class Lab5 {
 	// Right motor connected to output D
 	// Ultrasonic sensor port connected to input S1
 	// Color sensor port connected to input S2
+	public static final double TRACK = 11.5;
+	public static final double WHEEL_RADIUS = 2.165;
 	private static final EV3LargeRegulatedMotor leftMotor = new EV3LargeRegulatedMotor(LocalEV3.get().getPort("A"));
 	private static final EV3LargeRegulatedMotor rightMotor = new EV3LargeRegulatedMotor(LocalEV3.get().getPort("D"));
 	private static final EV3MediumRegulatedMotor usMotor = new EV3MediumRegulatedMotor(LocalEV3.get().getPort("C"));
@@ -58,7 +60,7 @@ public class Lab5 {
 		usPoller.start();
 		usl.start();
 		
-		ObjectFinder finder = new ObjectFinder();
+		ObjectFinder finder = new ObjectFinder(odo, nav, usl);
 		ColorPoller cPoller = new ColorPoller(colorValue, colorData, finder); 
 		cPoller.start();
 		finder.start();

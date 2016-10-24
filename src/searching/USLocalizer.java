@@ -25,7 +25,7 @@ public class USLocalizer extends Thread implements UltrasonicController {
 	public static boolean isCloseToObject = false;
 	private double deltaTheta;
 	private int initialDistance = 0;
-	private int distance;
+	public int distance;
 	private Odometer odo;
 	private Navigation nav;
 	private SampleProvider usSensor;
@@ -64,7 +64,7 @@ public class USLocalizer extends Thread implements UltrasonicController {
 	}
 
 	public void doLocalization() {
-		
+
 		double [] pos = new double [3];
 		double angleA, angleB;
 
@@ -74,24 +74,24 @@ public class USLocalizer extends Thread implements UltrasonicController {
 		rightMotor.setSpeed(ROTATION_SPEED);	
 		if (locType == LocalizationType.FALLING_EDGE) {
 			// rotate the robot until it sees no wall
-			
+
 			Delay.msDelay(100);
 			while(this.initialDistance < 5){
 				this.initialDistance = this.distance;
 				LCD.clear(7);
 				LCD.drawString("Init: " + Integer.toString(this.initialDistance), 0, 7);
 			}
-			
+
 			//RISING EDGE: robot starts away from the wall, start detecting walls right away 
 			if(this.initialDistance > WALL_DISTANCE){
-				
+
 				while(true){
 					//keep rotating clockwise until it sees a wall
 					turnClockwise();
 					//if it does, record the angle and stop
 					if(this.usSample[0] < WALL_DISTANCE && //this.usSample[1] < WALL_DISTANCE &&
-							 this.usSample[0] > this.usSample[1]
-									 &&this.usSample[0] != 0 && this.usSample[1] != 0			 
+							this.usSample[0] < this.usSample[1]
+									&&this.usSample[0] != 0 && this.usSample[1] != 0			 
 							){
 						angleA = Odometer.fixDegAngle(odo.getAng());
 						LCD.drawString("ang1: " + Double.toString(angleA), 0, 5);
@@ -110,8 +110,8 @@ public class USLocalizer extends Thread implements UltrasonicController {
 				while(true){
 					turnCounterClockwise();
 					if(this.usSample[0] < WALL_DISTANCE && //this.usSample[1] < WALL_DISTANCE &&
-							 this.usSample[0] > this.usSample[1]
-							&&this.usSample[0] != 0 && this.usSample[1] != 0		 
+							this.usSample[0] < this.usSample[1]
+									&&this.usSample[0] != 0 && this.usSample[1] != 0		 
 							){
 						angleB = Odometer.fixDegAngle(odo.getAng());
 						LCD.drawString("ang2: " + Double.toString(angleB), 0, 6);
@@ -124,7 +124,7 @@ public class USLocalizer extends Thread implements UltrasonicController {
 				}
 			} else {
 				//FALLING EDGE: robot starts facing a wall
-				
+
 				//rotate the robot until it's away from a wall, then stat detecting walls
 				while(true){
 					turnClockwise();
@@ -132,7 +132,7 @@ public class USLocalizer extends Thread implements UltrasonicController {
 						this.usSample = new float[]{0,0};
 						break;
 					}
-						
+
 				}
 				//rotate clockwise until the robot sees a wall
 				while(true){
@@ -152,14 +152,14 @@ public class USLocalizer extends Thread implements UltrasonicController {
 				//then start turning the other way
 				turnCounterClockwise();
 				Delay.msDelay(2000);
-				
+
 				//turn ccw until the next wall is found
 				while(true){
 					turnCounterClockwise();
 					if(this.usSample[0] < WALL_DISTANCE_FACING && this.usSample[1] < WALL_DISTANCE_FACING
 							&& this.usSample[0] < this.usSample[1]
-									 &&this.usSample[0] != 0 && this.usSample[1] != 0	
-									 ){
+									&&this.usSample[0] != 0 && this.usSample[1] != 0	
+							){
 						angleB = Odometer.fixDegAngle(odo.getAng());
 						//LCD.drawString("ang2: " + Double.toString(angleB), 0, 6);
 						Sound.beep();
@@ -170,7 +170,7 @@ public class USLocalizer extends Thread implements UltrasonicController {
 					}
 				}
 			}
-			
+
 			Button.LEDPattern(0);
 			double aveAngle = (angleA + angleB)/2;
 
@@ -183,7 +183,7 @@ public class USLocalizer extends Thread implements UltrasonicController {
 				deltaTheta = 225 - aveAngle;
 			}
 
-			double newAngle = Odometer.fixDegAngle( deltaTheta+ odo.getAng());
+			double newAngle = Odometer.fixDegAngle(deltaTheta+ odo.getAng());
 			LCD.clear(7);
 			LCD.drawString("newAng: " + Double.toString(newAngle), 0, 7);
 			if(this.initialDistance < WALL_DISTANCE){
@@ -196,37 +196,61 @@ public class USLocalizer extends Thread implements UltrasonicController {
 				leftMotor.stop(true);
 				rightMotor.stop(true);
 			}
-			Delay.msDelay(4000);
-			
+			Delay.msDelay(500);
+			nav.turnTo(90, true);
+			Delay.msDelay(1000);
+
 			// update the odometer position (example to follow:)
 			odo.setPosition(new double [] {0.0, 0.0, 0.0}, new boolean [] {true, true, true});
 			leftMotor.stop(true);
 			rightMotor.stop(true);
 			Delay.msDelay(200);
 			LCD.clear(7);
-//			LCD.drawString("TURNING TO 45", 0, 7);
-//			nav.turnTo(315, true);
-//			Delay.msDelay(5000);
+			//			LCD.drawString("TURNING TO 45", 0, 7);
+			//			nav.turnTo(315, true);
+			//			Delay.msDelay(5000);
 			Sound.playTone(4000, 500);
 			isComplete = true;
-			while(true){
-				if(this.distance < OBJECT_DETECTION_THRESHOLD){
-					this.isCloseToObject = true;
-					LCD.clear(7);
-					//Button.LEDPattern(1);
-					LCD.drawString("OBJECT DETECTED", 0, 7);
-				} 
-				//the object finder class will change the value after it decides
-				//what to do with the object. when it does do
-				//something else
-				//light sensor distance can be inside us deadband, so can't run
-				//both at the same time and expect good results
-				
+			int[][] pointsToCheck = {
+					{30,0},
+					{60,0},
+					{90,0},
+					{90,30},
+					{90,60},
+					{90,90},
+					{60,90},
+					{30,90},
+					{0,90},
+					{0,60},
+					{0,30},
+					{0,0}
+			};
+
+			for(int i = 0; i < pointsToCheck.length; i++){
+				LCD.clear(7);
+				LCD.drawString("SCANNING", 0, 7);
+				nav.scanForObject();
+				Delay.msDelay(1000);
+				LCD.clear(7);
+				LCD.drawString("TRAVELLING", 0, 7);
+				nav.travelTo(pointsToCheck[i][0], pointsToCheck[i][1]);
+				//nav.travelTo(30, 0);
+
+				Delay.msDelay(1000);
+//				if(!isCloseToObject){
+//					nav.travelTo(pointsToCheck[i][0], pointsToCheck[i][1]);
+//				} else {
+//					
+//				}
+			
+			
+
 			}
+
 
 		} else {
 			//nothing implemented, option chosen in main class is always the same and rising or falljng is selected based on initial distance
-					}
+		}
 	}
 
 	//LOCALIZATION CONTROLS
@@ -247,7 +271,7 @@ public class USLocalizer extends Thread implements UltrasonicController {
 	private static int convertAngle(double radius, double width, double angle) {
 		return convertDistance(radius, Math.PI * width * angle / 360.0);
 	}
-	
+
 	private void turnTo(double theta){
 
 		leftMotor.setSpeed(ROTATION_SPEED);
@@ -259,6 +283,8 @@ public class USLocalizer extends Thread implements UltrasonicController {
 
 	}
 
+
+
 	//OBSTACLE AVOIDANCE CONTROLS
 	private void bangbangAvoidance(){
 		if(distance < bandCenter - bandWidth){
@@ -269,10 +295,10 @@ public class USLocalizer extends Thread implements UltrasonicController {
 			moveForward();
 		}
 	}
-	
+
 	private void turnLeft(){
-//		navigator.leftMotor.stop();
-//		navigator.rightMotor.stop();
+		//		navigator.leftMotor.stop();
+		//		navigator.rightMotor.stop();
 		leftMotor.setSpeed(lowSpeed);
 		rightMotor.setSpeed(highSpeed);
 		leftMotor.forward();
@@ -280,7 +306,7 @@ public class USLocalizer extends Thread implements UltrasonicController {
 	}
 
 	private void turnRight(){
-		
+
 		leftMotor.setSpeed(highSpeed);
 		rightMotor.setSpeed(lowSpeed);
 		leftMotor.forward();
@@ -288,20 +314,22 @@ public class USLocalizer extends Thread implements UltrasonicController {
 	}
 
 	private void moveForward(){
-		
+
 		leftMotor.setSpeed(highSpeed);
 		rightMotor.setSpeed(highSpeed);
 		leftMotor.forward();
 		rightMotor.forward();
 	}
-	
+
+
+
 	@Override
 	public void processUSData(int distance, boolean isSensorForward, int count){
-//		if(distance == Integer.MAX_VALUE )
-//			distance = 255;
+		//		if(distance == Integer.MAX_VALUE )
+		//			distance = 255;
 		if(distance > FILTER_THRESHOLD)
 			distance = FILTER_THRESHOLD;
-		
+
 		this.distance = distance;
 		float tmp = this.usSample[0];
 		this.usSample[1] = tmp;
@@ -313,8 +341,8 @@ public class USLocalizer extends Thread implements UltrasonicController {
 	public int readUSDistance(){
 		return this.distance;
 	}
-	
 
 
-	
+
+
 }
